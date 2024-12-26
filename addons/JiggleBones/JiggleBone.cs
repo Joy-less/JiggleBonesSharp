@@ -73,7 +73,7 @@ public partial class JiggleBone : Node3D {
         float BoneRotateAngle = MathF.Acos(BoneForwardLocal.Dot(DiffVectorLocal));
 
         // Already aligned, no need to rotate
-        if (BoneRotateAxis.Length() < 1e-3) {
+        if (BoneRotateAxis.IsZeroApprox()) {
             return;
         }
 
