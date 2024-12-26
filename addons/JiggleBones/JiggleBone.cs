@@ -4,7 +4,7 @@ public partial class JiggleBone : Node3D {
         get => IsPhysicsProcessing();
         set => SetPhysicsProcess(value);
     }
-    [Export] public NodePath SkeletonPath { get; set; } = "..";
+    [Export(PropertyHint.NodePathValidTypes, "Skeleton3D")] public NodePath SkeletonPath { get; set; } = "..";
     [Export] public string? BoneName { get; set; } = null;
 
     [Export(PropertyHint.Range, "0.1,100,0.1")] public float Stiffness { get; set; } = 1;
