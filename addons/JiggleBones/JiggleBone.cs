@@ -93,12 +93,12 @@ public partial class JiggleBone : Node3D {
 
     private Vector3 GetBoneForwardLocal() {
         return ForwardAxis switch {
-            Axis.X_Plus => new Vector3(1,0,0),
-            Axis.Y_Plus => new Vector3(0,1,0),
-            Axis.Z_Plus => new Vector3(0,0,1),
-            Axis.X_Minus => new Vector3(-1,0,0),
-            Axis.Y_Minus => new Vector3(0,-1,0),
-            Axis.Z_Minus or _ => new Vector3(0,0,-1),
+            Axis.X_Plus => Vector3.Right,
+            Axis.Y_Plus => Vector3.Up,
+            Axis.Z_Plus => Vector3.Back,
+            Axis.X_Minus => Vector3.Left,
+            Axis.Y_Minus => Vector3.Down,
+            Axis.Z_Minus or _ => Vector3.Forward,
         };
     }
 
