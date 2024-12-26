@@ -1,9 +1,6 @@
 [Tool, GlobalClass, Icon("res://addons/jigglebones/icon.svg")]
 public partial class JiggleBone : Node3D {
-    [Export] public bool Enabled {
-        get => IsPhysicsProcessing();
-        set => SetPhysicsProcess(value);
-    }
+    [Export] public bool Enabled { get; set; } = true;
     [Export(PropertyHint.NodePathValidTypes, "Skeleton3D")] public NodePath SkeletonPath { get; set; } = "..";
     [Export] public string? BoneName { get; set; } = null;
 
