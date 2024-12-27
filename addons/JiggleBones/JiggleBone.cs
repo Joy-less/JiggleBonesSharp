@@ -41,13 +41,13 @@ public partial class JiggleBone : Node3D {
         Vector3 Gravity = UseGravity
             ? this.Gravity
             : (BoneTransformRestWorld.Basis * ForwardAxis.ToVector()).Normalized() * 9.81f;
-        Vector3 Velocity = (GlobalTransform.Origin - PreviousPosition) / (float)Delta;
+        Vector3 Velocity = (GlobalPosition - PreviousPosition) / (float)Delta;
 
         Gravity *= Stiffness;
         Velocity += Gravity;
         Velocity -= Velocity * Damping * (float)Delta;
 
-        PreviousPosition = GlobalTransform.Origin;
+        PreviousPosition = GlobalPosition;
         GlobalPosition += Velocity * (float)Delta;
 
         //======= Solve distance constraint =======\\
