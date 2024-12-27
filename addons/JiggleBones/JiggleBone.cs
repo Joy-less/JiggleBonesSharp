@@ -57,7 +57,14 @@ public partial class JiggleBone : SkeletonModifier3D {
         //======= Solve distance constraint =======\\
 
         Vector3 GoalPosition = BoneTransformWorld.Origin;
-        GlobalPosition = GoalPosition + (GlobalPosition - GoalPosition).Normalized();
+        Vector3 DiffVector = GlobalPosition - GoalPosition;
+
+        if (DiffVector.IsNaN()) {
+            GlobalPosition = GoalPosition;
+        }
+        else {
+            GlobalPosition = GoalPosition + DiffVector.Normalized();
+        }
 
         //======= Rotate the bone to point to this object =======\\
 
@@ -121,5 +128,8 @@ public static class JiggleBoneExtensions {
     }
     public static Vector3 RadToDeg(this Vector3 Radians) {
         return new Vector3(Mathf.RadToDeg(Radians.X), Mathf.RadToDeg(Radians.Y), Mathf.RadToDeg(Radians.Z));
+    }
+    public static bool IsNaN(this Vector3 Vector3) {
+        return Mathf.IsNaN(Vector3.X) || Mathf.IsNaN(Vector3.Y) || Mathf.IsNaN(Vector3.Z);
     }
 }
