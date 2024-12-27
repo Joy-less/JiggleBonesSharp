@@ -53,7 +53,7 @@ public partial class JiggleBone : Node3D {
 
         //======= Solve distance constraint =======\\
 
-        Vector3 GoalPosition = Skeleton.ToGlobal(Skeleton.GetBoneGlobalPose(BoneId).Origin);
+        Vector3 GoalPosition = BoneTransformWorld.Origin;
         GlobalPosition = GoalPosition + (GlobalPosition - GoalPosition).Normalized();
 
         //======= Rotate the bone to point to this object =======\\
