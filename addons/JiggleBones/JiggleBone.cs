@@ -48,7 +48,7 @@ public partial class JiggleBone : Node3D {
 
         //======= Solve distance constraint =======\\
 
-        Vector3 GoalPosition = Skeleton.ToGlobal(BoneTransformObject.Origin);
+        Vector3 GoalPosition = Skeleton.ToGlobal(Skeleton.GetBoneGlobalPose(BoneId).Origin);
         GlobalPosition = GoalPosition + (GlobalPosition - GoalPosition).Normalized();
 
         // If bone is inside the collision sphere, push it out
