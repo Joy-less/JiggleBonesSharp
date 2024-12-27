@@ -1,12 +1,10 @@
 namespace Godot;
 
 [Tool, GlobalClass, Icon("res://addons/jigglebones/icon.svg")]
-public partial class JiggleBone : Node3D {
-    [Export] public bool Enabled { get; set; } = true;
-    [Export(PropertyHint.NodePathValidTypes, "Skeleton3D")] public NodePath SkeletonPath { get; set; } = "..";
+public partial class JiggleBone : SkeletonModifier3D {
     [Export] public string? BoneName { get; set; } = null;
-    [Export(PropertyHint.Range, "0.1,100,0.1")] public float Stiffness { get; set; } = 1;
-    [Export(PropertyHint.Range, "0,100,0.1")] public float Damping { get; set; } = 0;
+    [Export(PropertyHint.Range, "0,10")] public float Stiffness { get; set; } = 1;
+    [Export(PropertyHint.Range, "0,10")] public float Damping { get; set; } = 0;
     [Export] public bool UseGravity { get; set; } = false;
     [Export] public Vector3 Gravity { get; set; } = new(0, -9.81f, 0);
     [Export] public Vector3 MaxDegrees { get; set; } = new(360, 360, 360);
@@ -19,15 +17,17 @@ public partial class JiggleBone : Node3D {
         TopLevel = true; // Ignore parent transformation
         PreviousPosition = GlobalPosition;
     }
-    public override void _PhysicsProcess(double Delta) {
-        if (!Enabled) {
-            return;
-        }
-
-        if (BoneName is null || GetNodeOrNull<Skeleton3D>(SkeletonPath) is not Skeleton3D Skeleton) {
+    public override void _ProcessModification() {
+        if (BoneName is null || GetSkeleton() is not Skeleton3D Skeleton) {
             return;
         }
         int BoneId = Skeleton.FindBone(BoneName);
+
+        double Delta = Skeleton.ModifierCallbackModeProcess switch {
+            Skeleton3D.ModifierCallbackModeProcessEnum.Physics => GetPhysicsProcessDeltaTime(),
+            Skeleton3D.ModifierCallbackModeProcessEnum.Idle => GetProcessDeltaTime(),
+            _ => throw new NotImplementedException()
+        };
 
         Transform3D BoneTransformObject = Skeleton.GetBoneGlobalPose(BoneId);
         Transform3D BoneTransformWorld = Skeleton.GlobalTransform * BoneTransformObject;
@@ -62,28 +62,35 @@ public partial class JiggleBone : Node3D {
 
         // The axis+angle to rotate on, in local-to-bone space
         Vector3 BoneRotateAxis = BoneForwardLocal.Cross(DiffVectorLocal);
-        float BoneRotateAngle = Mathf.Acos(BoneForwardLocal.Dot(DiffVectorLocal));
 
         // Min/max rotation degrees constraint
-        Vector3 RotatedAxisContribution = (BoneRotateAxis * BoneRotateAngle).Clamp(MinDegrees.DegToRad(), MaxDegrees.DegToRad());
+        Vector3 RotatedAxisContribution = BoneRotateAxis.Clamp(MinDegrees.DegToRad(), MaxDegrees.DegToRad());
         BoneRotateAxis = RotatedAxisContribution.Normalized();
-        BoneRotateAngle = RotatedAxisContribution.Length();
+        float BoneRotateAngle = RotatedAxisContribution.Length();
 
         // Already aligned, no need to rotate
         if (BoneRotateAxis.IsZeroApprox()) {
             return;
         }
 
+        BoneRotateAxis = BoneRotateAxis.Normalized();
+
         // Bring the axis to object space, WITHOUT position (so only the BASIS is used) since vectors shouldn't be translated
         Vector3 BoneRotateAxisObject = (BoneTransformObject.Basis * BoneRotateAxis).Normalized();
         Transform3D BoneNewTransformObject = new(BoneTransformObject.Basis.Rotated(BoneRotateAxisObject, BoneRotateAngle), BoneTransformObject.Origin);
 
-#pragma warning disable CS0618
-        Skeleton.SetBoneGlobalPoseOverride(BoneId, BoneNewTransformObject, amount: 0.5f, persistent: true);
-#pragma warning restore
+        Skeleton.SetBoneGlobalPose(BoneId, BoneNewTransformObject);
 
         // Orient this object to the jigglebone
         GlobalBasis = (Skeleton.GlobalTransform * Skeleton.GetBoneGlobalPose(BoneId)).Basis;
+    }
+    public override void _ValidateProperty(Collections.Dictionary Property) {
+        if (((string)Property["name"]) == PropertyName.BoneName.ToString()) {
+            if (GetSkeleton() is Skeleton3D Skeleton) {
+                Property["hint"] = (long)PropertyHint.Enum;
+                Property["hint_string"] = Skeleton.GetConcatenatedBoneNames();
+            }
+        }
     }
 }
 
