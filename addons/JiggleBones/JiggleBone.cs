@@ -9,7 +9,7 @@ public partial class JiggleBone : Node3D {
     [Export] public bool UseGravity { get; set; } = false;
     [Export] public Vector3 Gravity { get; set; } = new(0, -9.81f, 0);
     [Export] public Axis ForwardAxis { get; set; } = Axis.Z_Minus;
-    [Export] public CollisionShape3D? CollisionShape { get; set; } = null;
+    [Export] public CollisionShape3D? CollisionSphere { get; set; } = null;
 
     private Vector3 PreviousPosition;
 
@@ -51,10 +51,10 @@ public partial class JiggleBone : Node3D {
         Vector3 GoalPosition = Skeleton.ToGlobal(BoneTransformObject.Origin);
         GlobalPosition = GoalPosition + (GlobalPosition - GoalPosition).Normalized();
 
-        if (IsInstanceValid(CollisionShape)) {
-            // If bone is inside the collision sphere, push it out
-            Vector3 TestVector = GlobalPosition - CollisionShape.GlobalPosition;
-            float Distance = TestVector.Length() - ((SphereShape3D)CollisionShape.Shape).Radius;
+        // If bone is inside the collision sphere, push it out
+        if (IsInstanceValid(CollisionSphere)) {
+            Vector3 TestVector = GlobalPosition - CollisionSphere.GlobalPosition;
+            float Distance = TestVector.Length() - ((SphereShape3D)CollisionSphere.Shape).Radius;
             if (Distance < 0) {
                 GlobalPosition -= TestVector.Normalized() * Distance;
             }
