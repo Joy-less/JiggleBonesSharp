@@ -3,13 +3,13 @@ public partial class JiggleBone : Node3D {
     [Export] public bool Enabled { get; set; } = true;
     [Export(PropertyHint.NodePathValidTypes, "Skeleton3D")] public NodePath SkeletonPath { get; set; } = "..";
     [Export] public string? BoneName { get; set; } = null;
-
     [Export(PropertyHint.Range, "0.1,100,0.1")] public float Stiffness { get; set; } = 1;
     [Export(PropertyHint.Range, "0,100,0.1")] public float Damping { get; set; } = 0;
     [Export] public bool UseGravity { get; set; } = false;
     [Export] public Vector3 Gravity { get; set; } = new(0, -9.81f, 0);
+    [Export] public Vector3 MaxDegrees { get; set; } = new(360, 360, 360);
+    [Export] public Vector3 MinDegrees { get; set; } = new(-360, -360, -360);
     [Export] public Axis ForwardAxis { get; set; } = Axis.Z_Minus;
-    [Export] public CollisionShape3D? CollisionSphere { get; set; } = null;
 
     private Vector3 PreviousPosition;
 
@@ -18,10 +18,13 @@ public partial class JiggleBone : Node3D {
         PreviousPosition = GlobalPosition;
     }
     public override void _PhysicsProcess(double Delta) {
-        if (!Enabled || BoneName is null || GetNodeOrNull<Skeleton3D>(SkeletonPath) is not Skeleton3D Skeleton) {
+        if (!Enabled) {
             return;
         }
 
+        if (BoneName is null || GetNodeOrNull<Skeleton3D>(SkeletonPath) is not Skeleton3D Skeleton) {
+            return;
+        }
         int BoneId = Skeleton.FindBone(BoneName);
 
         Transform3D BoneTransformObject = Skeleton.GetBoneGlobalPose(BoneId);
@@ -51,15 +54,6 @@ public partial class JiggleBone : Node3D {
         Vector3 GoalPosition = Skeleton.ToGlobal(Skeleton.GetBoneGlobalPose(BoneId).Origin);
         GlobalPosition = GoalPosition + (GlobalPosition - GoalPosition).Normalized();
 
-        // If bone is inside the collision sphere, push it out
-        if (IsInstanceValid(CollisionSphere)) {
-            Vector3 TestVector = GlobalPosition - CollisionSphere.GlobalPosition;
-            float Distance = TestVector.Length() - ((SphereShape3D)CollisionSphere.Shape).Radius;
-            if (Distance < 0) {
-                GlobalPosition -= TestVector.Normalized() * Distance;
-            }
-        }
-
         //======= Rotate the bone to point to this object =======\\
 
         Vector3 DiffVectorLocal = (BoneTransformWorld.AffineInverse() * GlobalPosition).Normalized();
@@ -67,7 +61,20 @@ public partial class JiggleBone : Node3D {
 
         // The axis+angle to rotate on, in local-to-bone space
         Vector3 BoneRotateAxis = BoneForwardLocal.Cross(DiffVectorLocal);
-        float BoneRotateAngle = MathF.Acos(BoneForwardLocal.Dot(DiffVectorLocal));
+        float BoneRotateAngle = Mathf.Acos(BoneForwardLocal.Dot(DiffVectorLocal));
+
+        // Min/max rotation degrees constraint
+        Vector3 RotatedAxisContribution = new(
+            BoneRotateAxis.X * BoneRotateAngle,
+            BoneRotateAxis.Y * BoneRotateAngle,
+            BoneRotateAxis.Z * BoneRotateAngle
+        );
+        RotatedAxisContribution = RotatedAxisContribution.Clamp(
+            min: new Vector3(Mathf.DegToRad(MinDegrees.X), Mathf.DegToRad(MinDegrees.Y), Mathf.DegToRad(MinDegrees.Z)),
+            max: new Vector3(Mathf.DegToRad(MaxDegrees.X), Mathf.DegToRad(MaxDegrees.Y), Mathf.DegToRad(MaxDegrees.Z))
+        );
+        BoneRotateAxis = RotatedAxisContribution.Normalized();
+        BoneRotateAngle = RotatedAxisContribution.Length();
 
         // Already aligned, no need to rotate
         if (BoneRotateAxis.IsZeroApprox()) {
