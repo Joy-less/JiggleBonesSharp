@@ -1,4 +1,4 @@
-using Godot;
+namespace Godot;
 
 [Tool, GlobalClass, Icon("res://addons/jigglebones/icon.svg")]
 public partial class JiggleBone : Node3D {
