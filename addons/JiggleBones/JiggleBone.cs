@@ -9,7 +9,7 @@ public partial class JiggleBone : Node3D {
     [Export] public Vector3 Gravity { get; set; } = new(0, -9.81f, 0);
     [Export] public Vector3 MaxDegrees { get; set; } = new(360, 360, 360);
     [Export] public Vector3 MinDegrees { get; set; } = new(-360, -360, -360);
-    [Export] public Axis ForwardAxis { get; set; } = Axis.Z_Minus;
+    [Export] public JiggleBoneAxis ForwardAxis { get; set; } = JiggleBoneAxis.Z_Minus;
 
     private Vector3 PreviousPosition;
 
@@ -38,7 +38,7 @@ public partial class JiggleBone : Node3D {
         // If not using gravity, apply force in the direction of the bone (so it always wants to point "forward")
         Vector3 Gravity = this.Gravity;
         if (!UseGravity) {
-            Gravity = (BoneTransformRestWorld.Basis * GetBoneForwardLocal()).Normalized() * 9.81f;
+            Gravity = (BoneTransformRestWorld.Basis * ForwardAxis.ToVector()).Normalized() * 9.81f;
         }
         Vector3 Velocity = (GlobalTransform.Origin - PreviousPosition) / (float)Delta;
 
@@ -56,23 +56,15 @@ public partial class JiggleBone : Node3D {
 
         //======= Rotate the bone to point to this object =======\\
 
+        Vector3 BoneForwardLocal = ForwardAxis.ToVector();
         Vector3 DiffVectorLocal = (BoneTransformWorld.AffineInverse() * GlobalPosition).Normalized();
-        Vector3 BoneForwardLocal = GetBoneForwardLocal();
 
         // The axis+angle to rotate on, in local-to-bone space
         Vector3 BoneRotateAxis = BoneForwardLocal.Cross(DiffVectorLocal);
         float BoneRotateAngle = Mathf.Acos(BoneForwardLocal.Dot(DiffVectorLocal));
 
         // Min/max rotation degrees constraint
-        Vector3 RotatedAxisContribution = new(
-            BoneRotateAxis.X * BoneRotateAngle,
-            BoneRotateAxis.Y * BoneRotateAngle,
-            BoneRotateAxis.Z * BoneRotateAngle
-        );
-        RotatedAxisContribution = RotatedAxisContribution.Clamp(
-            min: new Vector3(Mathf.DegToRad(MinDegrees.X), Mathf.DegToRad(MinDegrees.Y), Mathf.DegToRad(MinDegrees.Z)),
-            max: new Vector3(Mathf.DegToRad(MaxDegrees.X), Mathf.DegToRad(MaxDegrees.Y), Mathf.DegToRad(MaxDegrees.Z))
-        );
+        Vector3 RotatedAxisContribution = (BoneRotateAxis * BoneRotateAngle).Clamp(MinDegrees.DegToRad(), MaxDegrees.DegToRad());
         BoneRotateAxis = RotatedAxisContribution.Normalized();
         BoneRotateAngle = RotatedAxisContribution.Length();
 
@@ -80,8 +72,6 @@ public partial class JiggleBone : Node3D {
         if (BoneRotateAxis.IsZeroApprox()) {
             return;
         }
-
-        BoneRotateAxis = BoneRotateAxis.Normalized();
 
         // Bring the axis to object space, WITHOUT position (so only the BASIS is used) since vectors shouldn't be translated
         Vector3 BoneRotateAxisObject = (BoneTransformObject.Basis * BoneRotateAxis).Normalized();
@@ -94,24 +84,32 @@ public partial class JiggleBone : Node3D {
         // Orient this object to the jigglebone
         GlobalBasis = (Skeleton.GlobalTransform * Skeleton.GetBoneGlobalPose(BoneId)).Basis;
     }
+}
 
-    private Vector3 GetBoneForwardLocal() {
-        return ForwardAxis switch {
-            Axis.X_Plus => Vector3.Right,
-            Axis.Y_Plus => Vector3.Up,
-            Axis.Z_Plus => Vector3.Back,
-            Axis.X_Minus => Vector3.Left,
-            Axis.Y_Minus => Vector3.Down,
-            Axis.Z_Minus or _ => Vector3.Forward,
+public enum JiggleBoneAxis {
+    X_Plus,
+    Y_Plus,
+    Z_Plus,
+    X_Minus,
+    Y_Minus,
+    Z_Minus,
+}
+
+public static class JiggleBoneExtensions {
+    public static Vector3 ToVector(this JiggleBoneAxis Axis) {
+        return Axis switch {
+            JiggleBoneAxis.X_Plus => Vector3.Right,
+            JiggleBoneAxis.Y_Plus => Vector3.Up,
+            JiggleBoneAxis.Z_Plus => Vector3.Back,
+            JiggleBoneAxis.X_Minus => Vector3.Left,
+            JiggleBoneAxis.Y_Minus => Vector3.Down,
+            JiggleBoneAxis.Z_Minus or _ => Vector3.Forward,
         };
     }
-
-    public enum Axis {
-        X_Plus,
-        Y_Plus,
-        Z_Plus,
-        X_Minus,
-        Y_Minus,
-        Z_Minus,
+    public static Vector3 DegToRad(this Vector3 Degrees) {
+        return new Vector3(Mathf.DegToRad(Degrees.X), Mathf.DegToRad(Degrees.Y), Mathf.DegToRad(Degrees.Z));
+    }
+    public static Vector3 RadToDeg(this Vector3 Radians) {
+        return new Vector3(Mathf.RadToDeg(Radians.X), Mathf.RadToDeg(Radians.Y), Mathf.RadToDeg(Radians.Z));
     }
 }
