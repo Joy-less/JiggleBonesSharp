@@ -1,3 +1,5 @@
+using Godot;
+
 [Tool, GlobalClass, Icon("res://addons/jigglebones/icon.svg")]
 public partial class JiggleBone : Node3D {
     [Export] public bool Enabled { get; set; } = true;
