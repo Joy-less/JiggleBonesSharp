@@ -38,10 +38,9 @@ public partial class JiggleBone : Node3D {
         //======= Integrate velocity (Verlet integration) =======\\
 
         // If not using gravity, apply force in the direction of the bone (so it always wants to point "forward")
-        Vector3 Gravity = this.Gravity;
-        if (!UseGravity) {
-            Gravity = (BoneTransformRestWorld.Basis * ForwardAxis.ToVector()).Normalized() * 9.81f;
-        }
+        Vector3 Gravity = UseGravity
+            ? this.Gravity
+            : (BoneTransformRestWorld.Basis * ForwardAxis.ToVector()).Normalized() * 9.81f;
         Vector3 Velocity = (GlobalTransform.Origin - PreviousPosition) / (float)Delta;
 
         Gravity *= Stiffness;
