@@ -18,20 +18,24 @@ public partial class JiggleBone : SkeletonModifier3D {
         PreviousPosition = GlobalPosition;
     }
     public override void _ProcessModification() {
+        // Get bone ID from name
         if (BoneName is null || GetSkeleton() is not Skeleton3D Skeleton) {
             return;
         }
         int BoneId = Skeleton.FindBone(BoneName);
 
+        // Get seconds since last frame
         double Delta = Skeleton.ModifierCallbackModeProcess switch {
             Skeleton3D.ModifierCallbackModeProcessEnum.Physics => GetPhysicsProcessDeltaTime(),
             Skeleton3D.ModifierCallbackModeProcessEnum.Idle => GetProcessDeltaTime(),
             _ => throw new NotImplementedException()
         };
 
+        // Get bone pose transform
         Transform3D BoneTransformObject = Skeleton.GetBoneGlobalPose(BoneId);
         Transform3D BoneTransformWorld = Skeleton.GlobalTransform * BoneTransformObject;
 
+        // Get bone rest transform
         Transform3D BoneTransformRestObject = Skeleton.GetBoneGlobalRest(BoneId);
         Transform3D BoneTransformRestWorld = Skeleton.GlobalTransform * BoneTransformRestObject;
 
@@ -64,16 +68,14 @@ public partial class JiggleBone : SkeletonModifier3D {
         Vector3 BoneRotateAxis = BoneForwardLocal.Cross(DiffVectorLocal);
 
         // Min/max rotation degrees constraint
-        Vector3 RotatedAxisContribution = BoneRotateAxis.Clamp(MinDegrees.DegToRad(), MaxDegrees.DegToRad());
-        BoneRotateAxis = RotatedAxisContribution.Normalized();
-        float BoneRotateAngle = RotatedAxisContribution.Length();
+        BoneRotateAxis = BoneRotateAxis.Clamp(MinDegrees.DegToRad(), MaxDegrees.DegToRad());
+        float BoneRotateAngle = BoneRotateAxis.Length();
+        BoneRotateAxis = BoneRotateAxis.Normalized();
 
         // Already aligned, no need to rotate
-        if (BoneRotateAxis.IsZeroApprox()) {
+        if (Mathf.IsZeroApprox(BoneRotateAngle)) {
             return;
         }
-
-        BoneRotateAxis = BoneRotateAxis.Normalized();
 
         // Bring the axis to object space, WITHOUT position (so only the BASIS is used) since vectors shouldn't be translated
         Vector3 BoneRotateAxisObject = (BoneTransformObject.Basis * BoneRotateAxis).Normalized();
