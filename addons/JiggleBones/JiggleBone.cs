@@ -94,7 +94,7 @@ public partial class JiggleBone : SkeletonModifier3D {
         GlobalBasis = (Skeleton.GlobalTransform * Skeleton.GetBoneGlobalPose(BoneId)).Basis;
     }
     public override void _ValidateProperty(Collections.Dictionary Property) {
-        if (((string)Property["name"]) == PropertyName.BoneName.ToString()) {
+        if (Property["name"].AsStringName() == PropertyName.BoneName) {
             if (GetSkeleton() is Skeleton3D Skeleton) {
                 Property["hint"] = (long)PropertyHint.Enum;
                 Property["hint_string"] = Skeleton.GetConcatenatedBoneNames();
